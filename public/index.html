@@ -1,0 +1,256 @@
+<html>
+<head>
+<script type="text/javascript" src="http://platform.linkedin.com/in.js">
+  api_key: 7ohwqtrhv7r8
+  authorize: true
+  scope: r_basicprofile r_fullprofile r_emailaddress r_network r_contactinfo 
+</script>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+<script type="text/javascript">
+    var or = function(value, alternate) {
+        if (value == undefined || value == null) {
+            return alternate;
+        } else {
+            return value;
+        }
+    }
+
+    var countryNameFromCountryCode = function(code) {
+        var d = {'ca': 'Canada',
+                 'us': 'United States',
+                 'pe': 'Peru',
+                 'ar': 'Argentina',
+                 'co': 'Colombia',
+                 'fr': 'France',
+                 'hu': 'Hungary',
+                 'nl': 'Netherlands',
+                 'tr': 'Turkey',
+                 'in': 'India',
+                 'il': 'Israel',
+                 'cn': 'China',
+                 'hk': 'Hong Kong',
+                 'za': 'South Africa',
+                 'ke': 'Kenya',
+                 'gh': 'Ghana',
+                 'sz': 'swaziland',
+                 'cz': 'Czech Republic',
+                 'ie': 'Ireland',
+                 'it': 'Italy',
+                 'sk': 'Slovakia',
+                 'ph': 'Philippines',
+                 'de': 'Germany',
+                 'jp': 'Japan',
+                 'fi': 'Finland',
+                 'no': 'Norway',
+                 'la': 'Laos',
+                 'sg': 'Singapore',
+                 'vn': 'Vietnam',
+                 'nm': 'Namibia',
+                 'oo': 'Other',
+                 'gb': 'United Kingdom'
+        }
+        return or(d.get(code), code);
+    }
+
+    /* string startswith, endswith  */
+    function AssertException(message) { this.message = message; }
+
+    AssertException.prototype.toString = function () {
+        return 'AssertException: ' + this.message;
+    }
+
+    function assert(exp, message) {
+        if (!exp) {
+            throw new AssertException(message);
+        }
+    }
+
+    if (typeof String.prototype.startsWith != 'function') {
+        String.prototype.startsWith = function (str){
+            return this.slice(0, str.length) == str;
+        };
+    }
+
+    if (typeof String.prototype.endsWith != 'function') {
+        String.prototype.endsWith = function (str){
+            return this.slice(-str.length) == str;
+        };
+    }
+
+    if (typeof String.prototype.trim != 'function') {
+        String.prototype.trim = function() {
+            return (this.replace(/^[\s\xA0]+/, "").replace(/[\s\xA0]+$/, ""));
+        }
+    }
+
+    if (typeof Object.prototype.get != 'function') {
+        Object.prototype.get = function(k1, k2, k3, k4, k5, k6, k7, k8) {
+            /* Accepts a dictionary, and key strings.
+                Returns the recursive dictionary keys as in Python.
+            */
+            if (k1 == undefined) {
+                return null;
+            }
+            var output = this;
+            var k = [k1, k2, k3, k4, k5, k6, k7, k8];
+            for (i=0; i < k.length; i++) {
+                if (k[i] == undefined) {
+                    return output;
+                } else {
+                    if (k[i] in output) {
+                        output = output[k[i]];
+                    } else {
+                        return null;
+                    }
+                }
+            }
+            return output;
+        }
+    }
+    /* end extra prototype functions */
+
+    var removeAtFront = function(s, word) {
+        if (s.startsWith(word)) {
+            return s.slice(word.length + 1, s.length);
+        } else {
+            return s;
+        }
+    }
+
+    var removeAtEnd = function(s, word) {
+        if (s.endsWith(word)) {
+            return s.slice(0, s.length - word.length - 1);
+        } else {
+            return s;
+        }
+    }
+
+    var cleanupCityName = function(longCityName) {
+        /* Accepts long city name string.
+            Removes Greater and Area from the string, 
+                and extra after the comma.
+            Returns string.
+        */
+        if (longCityName == null) {
+            return '';
+        } else {
+            if (longCityName === 'Slovak Republic') {
+                return 'Slovakia';
+            }
+
+            var s = longCityName.trim().split(',')[0]
+            s = s.split('/')[0]
+            s = s.split('-')[0]
+
+            s = removeAtFront(s, 'Greater');
+            s = removeAtFront(s, 'District');
+
+            s = removeAtEnd(s, 'Area');
+            s = removeAtEnd(s, 'Metro');
+            s = removeAtEnd(s, 'Bay');
+            return s;
+        }
+    }
+
+    var addOneToHierarchy = function(element, hierarchy) {
+        assert('0' in element, 's');
+        assert('size' in element, 's');
+        assert('name' in element, 's');
+        var i = 0;
+        var d = hierarchy;
+        //alert(JSON.stringify(element));
+        //alert(JSON.stringify(hierarchy));
+        while(i in element) {
+            if (!('children' in d)) {
+                d.children = [];
+            }
+
+            var category = element[i];
+
+            var subchild = null;
+            for(var j = 0; j < d.children.length; j++) {
+                if (category == d.children[j].name) {
+                    subchild = d.children[j];
+                }
+            }
+            if (subchild == null) {
+                subchild = {'name': category};
+                d.children.push(subchild)
+            }
+
+            d = subchild
+            i += 1;
+        }
+
+        if (!('children' in d)) {
+            d.children = [];
+        }
+        d.children.push({'name': element.name, 'size': element.size});
+    }
+
+    var addToHierarchy = function(flatHierarchy, total) {
+        var h = total;
+        if (total == undefined) {
+            h = {'name': 'network', 'children': []};
+        }
+        for(var i = 0; i < flatHierarchy.length; i++) {
+            addOneToHierarchy(flatHierarchy[i], h);
+        }
+        return h;
+    }
+
+    var newlogin = function(d) {
+        var fields = ['formattedName', 'firstName', 'lastName', 'headline', 'positions', 'location', 'industry', 'numConnections', 'summary', 'pictureUrl', 'siteStandardProfileRequest', 'relatedProfileViews', 'threePastPositions', 'threeCurrentPositions', 'specialties', 'currentShare', 'educations'];
+
+        IN.API.Connections("me")
+            .fields(fields)
+            .result(function(result) { 
+                var values = result.values;
+                //alert(values.length);
+                var flatHierarchy = jQuery.map(values, function(v) {
+                    var country = countryNameFromCountryCode(v.get('location', 'country', 'code'));
+                    var city = cleanupCityName(v.get('location', 'name'));
+                    var name = v.formattedName;
+                    var size = 1;
+
+                    if (country === city) {
+                        return {'0': country,
+                                'name': name,
+                                'size': size
+                        };
+                    } else {
+                        return {'0': country,
+                                '1': city,
+                                'name': name,
+                                'size': size
+                        };
+                    }
+                });
+                var hierarchy = addToHierarchy(flatHierarchy);
+                var t = JSON.stringify(hierarchy);
+                $("#connections").html(t);
+                //$("#connections").html(JSON.stringify(result));
+        });
+
+        /*
+        IN.API.Profile("me")
+            .fields(fields)
+            .result(function(result) { 
+                alert(JSON.stringify(result));
+                $("#connections").html(JSON.stringify(result));
+        });
+        */
+    };
+</script>
+</head>
+<body>
+
+<div id="connections">
+</div>
+
+<script type="in/Login"  data-onAuth="newlogin">
+    Hello, <?js= firstName ?> <?js= lastName ?>.
+</script>
+
+</body>
+</html>
