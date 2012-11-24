@@ -211,7 +211,8 @@
                     var country = countryNameFromCountryCode(v.get('location', 'country', 'code'));
                     var city = cleanupCityName(v.get('location', 'name'));
                     var name = v.formattedName;
-                    var size = 1;
+                    var size = Math.round(v.numConnections / 50);
+                    console.log(size);
 
                     if (country === city) {
                         return {'0': country,

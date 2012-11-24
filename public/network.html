@@ -5,13 +5,26 @@
     <link type="text/css" rel="stylesheet" href="style.css"/>
     <style type="text/css">
 
+.profile_pic {
+    -moz-border-radius: 50%;
+    -webkit-border-radius: 50%;
+    border-radius: 50%;
+
+    box-shadow: 0 0 8px rgba(0, 0, 0, .8);
+    -webkit-box-shadow: 0 0 8px rgba(0, 0, 0, .8);
+    -moz-box-shadow: 0 0 8px rgba(0, 0, 0, .8);
+}
+
 text {
   font-size: 11px;
   pointer-events: none;
 }
 
 text.parent {
-  fill: #1f77b4;
+  /*fill: #1f77b4;*/
+  fill: #cccc12;
+  text-shadow: 0.1em 0.1em #333;
+  font-size: 0.6em;
 }
 
 circle {
@@ -83,10 +96,13 @@ var vis = d3.select("body").insert("svg:svg", "h2")
   .append("svg:g")
     .attr("transform", "translate(" + (w - r) / 2 + "," + (h - r) / 2 + ")");
 
+var z = (3.0 / 4.0);
+
 var showData = function(data) {
   node = root = data;
 
   var nodes = pack.nodes(root);
+  var fill = d3.scale.category10();
 
   vis.selectAll("circle")
       .data(nodes)
@@ -95,6 +111,18 @@ var showData = function(data) {
       .attr("cx", function(d) { return d.x; })
       .attr("cy", function(d) { return d.y; })
       .attr("r", function(d) { return d.r; })
+      .style("fill", function(d) { return fill(d.packageName); })
+      .on("click", function(d) { return zoom(node == d ? root : d); });
+
+  vis.selectAll("image")
+      .data(nodes)
+    .enter().append('svg:image')
+      .attr('class', 'profile_pic')
+      .attr("xlink:href", function(d) { return d.photoUrl; })
+      .attr("x", function(d) { return d.x - (d.r / 2); })
+      .attr("y", function(d) { return d.y - (d.r / 2); })
+      .attr("width", function(d) { return d.r; })
+      .attr("height", function(d) { return d.r; })
       .on("click", function(d) { return zoom(node == d ? root : d); });
 
   vis.selectAll("text")
@@ -102,7 +130,7 @@ var showData = function(data) {
     .enter().append("svg:text")
       .attr("class", function(d) { return d.children ? "parent" : "child"; })
       .attr("x", function(d) { return d.x; })
-      .attr("y", function(d) { return d.y - (d.children ? 3 : 0); })
+      .attr("y", function(d) { return d.y + ((d.children ? -z/4 : z) * d.r); })
       .attr("dy", ".35em")
       .attr("text-anchor", "middle")
       .style("opacity", function(d) { return d.r > 20 ? 1 : 0; })
@@ -124,9 +152,15 @@ function zoom(d, i) {
       .attr("cy", function(d) { return y(d.y); })
       .attr("r", function(d) { return k * d.r; });
 
+  t.selectAll("image")
+      .attr('x', function(d) { return x(d.x - (d.r / 2)); })
+      .attr('y', function(d) { return y(d.y - (d.r / 2)); })
+      .attr('width', function(d) { return k * d.r; })
+      .attr('height', function(d) { return k * d.r; });
+
   t.selectAll("text")
       .attr("x", function(d) { return x(d.x); })
-      .attr("y", function(d) { return y(d.y - (d.children ? 3 : 0)); })
+      .attr("y", function(d) { return y(d.y + ((d.children ? -z/4 : z) * d.r)); })
       .style("opacity", function(d) { return k * d.r > 20 ? 1 : 0; });
 
   node = d;
@@ -316,7 +350,11 @@ function zoom(d, i) {
         if (!('children' in d)) {
             d.children = [];
         }
-        d.children.push({'name': element.name, 'size': element.size});
+        d.children.push({'name': element.name, 
+                         'size': element.size,
+                         'url': element.url,
+                         'photoUrl': element.photoUrl
+        });
     }
 
     var addToHierarchy = function(flatHierarchy, total) {
@@ -326,7 +364,9 @@ function zoom(d, i) {
             h = {'name': network, 'children': []};
         }
         for(var i = 0; i < flatHierarchy.length; i++) {
-            addOneToHierarchy(flatHierarchy[i], h);
+            if (flatHierarchy[i] != null) {
+                addOneToHierarchy(flatHierarchy[i], h);
+            }
         }
         return h;
     }
@@ -334,27 +374,56 @@ function zoom(d, i) {
     var newlogin = function(d) {
         var fields = ['formattedName', 'firstName', 'lastName', 'headline', 'positions', 'location', 'industry', 'numConnections', 'summary', 'pictureUrl', 'siteStandardProfileRequest', 'relatedProfileViews', 'threePastPositions', 'threeCurrentPositions', 'specialties', 'currentShare', 'educations'];
 
+        /*
         IN.API.Connections("me")
             .fields(fields)
-            .result(function(result) { 
+            .result(
+        */
+        d3.json('network.json',
+                function(result) { 
                 var values = result.values;
                 //alert(values.length);
                 var flatHierarchy = jQuery.map(values, function(v) {
                     var country = countryNameFromCountryCode(v.get('location', 'country', 'code'));
                     var city = cleanupCityName(v.get('location', 'name'));
-                    var name = v.formattedName;
-                    var size = 1;
+                    var name = v.formattedName; // v.lastName; //
+                    var size = 1 + or(v.get('numConnections'), 0);
+                    var url = v.get('siteStandardProfileRequest','url');
+                    var photoUrl = v.pictureUrl;
 
-                    if (country === city) {
+                    var sandbox = {'Trevor Owens': true,
+                                   'Bjoern Lasse Herrmann': true,
+                                   'Bel Pesce': true,
+                                   'William McQuillan': true,
+                                   'Rand Hindi': true,
+                                   'Leon Chen': true,
+                                   'Alvin Tse': true,
+                                   'Mihai Mafteianu': true,
+                                   'Bryan Baum': true};
+
+                    if (name == null) {
+                        return null;
+                    } else if (v.formattedName in sandbox || v.firstName == 'Leon') {
+                        return {'0': 'Sandbox',
+                                'name': name,
+                                'size': 10000,
+                                'url': url,
+                                'photoUrl': photoUrl
+                        };
+                    } else if (country === city) {
                         return {'0': country,
                                 'name': name,
-                                'size': size
+                                'size': size,
+                                'url': url,
+                                'photoUrl': photoUrl
                         };
                     } else {
                         return {'0': country,
                                 '1': city,
                                 'name': name,
-                                'size': size
+                                'size': size,
+                                'url': url,
+                                'photoUrl': photoUrl
                         };
                     }
                 });
@@ -378,5 +447,7 @@ function zoom(d, i) {
         */
     };
 </script>
+<div id="connections"></div>
   </body>
 </html>
+
