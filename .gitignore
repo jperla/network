@@ -3,3 +3,4 @@ python-linkedin*
 *.pyc
 
 linkedin_keys.py
+public/network.json
