@@ -27,6 +27,10 @@ text.parent {
   font-size: 0.6em;
 }
 
+image.profile_pic {
+  pointer-events: none;
+}
+
 circle {
   fill: #ccc;
   stroke: #999;
@@ -106,34 +110,32 @@ var showData = function(data) {
   var nodes = pack.nodes(root);
   var fill = d3.scale.category10();
 
-  var node = vis.selectAll('place')
-       .data(nodes)
-     .enter().append('svg:g')
-       .attr('class', 'node')
-       .attr('transform', function(d) { return 'translate(' + d.x + ',' + d.y + ')'; })
-       .on("click", function(d) { return zoom(node == d ? root : d); });
-
-  node.append("svg:circle")
+  vis.selectAll("circle")
+      .data(nodes)
+    .enter().append("svg:circle")
       .attr("class", function(d) { return d.children ? "parent" : "child"; })
-      //.attr("cx", function(d) { return d.x; })
-      //.attr("cy", function(d) { return d.y; })
+      .attr("cx", function(d) { return d.x; })
+      .attr("cy", function(d) { return d.y; })
       .attr("r", function(d) { return d.r; })
-      //TODO: make colors work
       .style("fill", function(d) { return fill(d.packageName); })
+      .on("click", function(d) { return zoom(node == d ? root : d); });
 
-  node.append('svg:image')
+  vis.selectAll("image")
+      .data(nodes)
+    .enter().append('svg:image')
       .attr('class', 'profile_pic')
       .attr("xlink:href", function(d) { return d.photoUrl; })
-      //.attr("x", function(d) { return d.x - (d.r / 2); })
-      //.attr("y", function(d) { return d.y - (d.r / 2); })
+      .attr("x", function(d) { return d.x - (d.r / 2); })
+      .attr("y", function(d) { return d.y - (d.r / 2); })
       .attr("width", function(d) { return d.r; })
       .attr("height", function(d) { return d.r; })
 
-  node.append("svg:text")
+  vis.selectAll("text")
+      .data(nodes)
+    .enter().append("svg:text")
       .attr("class", function(d) { return d.children ? "parent" : "child"; })
-      //.attr("x", function(d) { return d.x; })
-      //.attr("y", function(d) { return d.y + ((d.children ? -z/4 : z) * d.r); })
-      .attr:wq
+      .attr("x", function(d) { return d.x; })
+      .attr("y", function(d) { return d.y + ((d.children ? -z/4 : z) * d.r); })
       .attr("dy", ".35em")
       .attr("text-anchor", "middle")
       .style("opacity", function(d) { return d.r > 20 ? 1 : 0; })
@@ -150,17 +152,20 @@ function zoom(d, i) {
   var t = vis.transition()
       .duration(d3.event.altKey ? 7500 : 750);
 
-  t.selectAll("g.node")
-       .attr('transform', function(d) { return 'translate(' + x(d.x) + ',' + y(d.y) + ')'; })
-
   t.selectAll("circle")
+      .attr("cx", function(d) { return x(d.x); })
+      .attr("cy", function(d) { return y(d.y); })
       .attr("r", function(d) { return k * d.r; });
 
   t.selectAll("image")
+      .attr('x', function(d) { return x(d.x - (d.r / 2)); })
+      .attr('y', function(d) { return y(d.y - (d.r / 2)); })
       .attr('width', function(d) { return k * d.r; })
       .attr('height', function(d) { return k * d.r; });
 
   t.selectAll("text")
+      .attr("x", function(d) { return x(d.x); })
+      .attr("y", function(d) { return y(d.y + ((d.children ? -z/4 : z) * d.r)); })
       .style("opacity", function(d) { return k * d.r > 20 ? 1 : 0; });
 
   node = d;
@@ -431,7 +436,7 @@ function zoom(d, i) {
 
                 var hierarchy = addToHierarchy(flatHierarchy);
                 var t = JSON.stringify(hierarchy);
-                //console.log(t);
+                console.log(t);
 
                 showData(hierarchy);
                 //$("#connections").html(t);

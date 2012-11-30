@@ -23,8 +23,18 @@ text {
 text.parent {
   /*fill: #1f77b4;*/
   fill: #cccc12;
-  text-shadow: 0.1em 0.1em #333;
+  text-shadow: black 0.05em 0.05em, black -0.05em -0.05em;
+  /*
+  text-shadow: 0 5px black,
+               0 -5px black,
+               -5px 0 black,
+               5px 0 black;
+  */
   font-size: 0.6em;
+}
+
+image.profile_pic {
+  pointer-events: none;
 }
 
 circle {
@@ -127,6 +137,26 @@ var showData = function(data) {
       .attr("height", function(d) { return d.r; })
       .on("click", function(d) { return zoom(node == d ? root : d); });
 
+
+/*
+var text = vis.selectAll('text')
+    .data(nodes)
+    .enter().append("svg:g")
+
+// A copy of the text with a thick white stroke for legibility.
+text.append("svg:text")
+    .attr("x", 8)
+    .attr("y", ".31em")
+    .attr("class", "shadow")
+    .text(function(d) { return d.name; });
+
+text.append("svg:text")
+    .attr("x", 8)
+    .attr("y", ".31em")
+    .text(function(d) { return d.name; });
+*/
+
+
   vis.selectAll("text")
       .data(nodes)
     .enter().append("svg:text")
@@ -147,7 +177,7 @@ function zoom(d, i) {
   y.domain([d.y - d.r, d.y + d.r]);
 
   var t = vis.transition()
-      .duration(d3.event.altKey ? 7500 : 750);
+      .duration(d3.event.altKey ? 7500 : 3000);
 
   t.selectAll("circle")
       .attr("cx", function(d) { return x(d.x); })
@@ -433,7 +463,7 @@ function zoom(d, i) {
 
                 var hierarchy = addToHierarchy(flatHierarchy);
                 var t = JSON.stringify(hierarchy);
-                console.log(t);
+                //console.log(t);
 
                 showData(hierarchy);
                 //$("#connections").html(t);
