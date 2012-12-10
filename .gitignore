@@ -4,3 +4,5 @@ python-linkedin*
 
 linkedin_keys.py
 public/network.json
+
+cache/

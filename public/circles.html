@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+    <link type="text/css" rel="stylesheet" href="style.css"/>
+    <style type="text/css">
+
+.profile_pic {
+    -moz-border-radius: 50%;
+    -webkit-border-radius: 50%;
+    border-radius: 50%;
+
+    box-shadow: 0 0 8px rgba(0, 0, 0, .8);
+    -webkit-box-shadow: 0 0 8px rgba(0, 0, 0, .8);
+    -moz-box-shadow: 0 0 8px rgba(0, 0, 0, .8);
+}
+
+text {
+  font-size: 11px;
+  pointer-events: none;
+}
+
+text.parent {
+  /*fill: #1f77b4;*/
+  fill: #cccc12; 
+  /* 
+  filter:alpha(opacity=40);
+  */
+  text-shadow: black 0.05em 0.05em, black -0.05em -0.05em;
+  /*
+  text-shadow: 0 5px black,
+               0 -5px black,
+               -5px 0 black,
+               5px 0 black;
+  */
+  font-size: 0.6em;
+}
+
+image.profile_pic {
+  pointer-events: none;
+}
+
+circle {
+  fill: #ccc;
+  stroke: #999;
+  pointer-events: all;
+}
+
+circle.parent {
+  fill: #1f77b4;
+  fill-opacity: .1;
+  stroke: steelblue;
+}
+
+circle.parent:hover {
+  stroke: #ff7f0e;
+  stroke-width: .5px;
+}
+
+circle.child {
+  pointer-events: none;
+}
+
+    </style>
+
+
+
+
+<script type="text/javascript" src="http://platform.linkedin.com/in.js">
+  api_key: 7ohwqtrhv7r8
+  authorize: true
+  scope: r_basicprofile r_fullprofile r_emailaddress r_network r_contactinfo 
+</script>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+
+
+
+
+</head>
+
+  <body>
+
+<script type="in/Login"  data-onAuth="newlogin">
+    Hello, <?js= firstName ?> <?js= lastName ?>.
+</script>
+
+    <h2>
+        My Network
+    </h2>
+    <script type="text/javascript" src="d3/d3.js"></script>
+    <script type="text/javascript" src="d3/d3.layout.js"></script>
+    <script type="text/javascript">
+
+var w = 900,
+    h = 900,
+    r = 720,
+    x = d3.scale.linear().range([0, r]),
+    y = d3.scale.linear().range([0, r]),
+    node,
+    root;
+
+var pack = d3.layout.pack()
+    .size([r, r])
+    .value(function(d) { return d.size; })
+
+var z = (3.0 / 4.0);
+
+var vis = null;
+
+var showData = function(data) {
+    vis = d3.select("body").insert("svg:svg", "h2")
+            .attr("width", w)
+            .attr("height", h)
+        .append("svg:g")
+            .attr("transform", "translate(" + (w - r) / 2 + "," + (h - r) / 2 + ")");
+
+  node = root = data;
+
+  var nodes = pack.nodes(root);
+  var fill = d3.scale.category10();
+
+  vis.selectAll("circle")
+      .data(nodes)
+    .enter().append("svg:circle")
+      .attr("class", function(d) { return d.children ? "parent" : "child"; })
+      .attr("cx", function(d) { return d.x; })
+      .attr("cy", function(d) { return d.y; })
+      .attr("r", function(d) { return d.r; })
+      .style("fill", function(d) { return fill(d.depth); })
+      .on("click", function(d) { return zoom(node == d ? root : d); });
+
+  vis.selectAll("image")
+      .data(nodes)
+    .enter().append('svg:image')
+      .attr('class', 'profile_pic')
+      .attr("xlink:href", function(d) { return (d.photoUrl ? '/face?v2&url=' + d.photoUrl : null); })
+      .attr("x", function(d) { return d.x - 0.9*d.r; })
+      .attr("y", function(d) { return d.y - 0.9*d.r; })
+      .attr("width", function(d) { return 1.8 * d.r; })
+      .attr("height", function(d) { return 1.8 * d.r; })
+
+
+  vis.selectAll("text")
+      .data(nodes)
+    .enter().append("svg:text")
+      .attr("class", function(d) { return d.children ? "parent" : "child"; })
+      .attr("x", function(d) { return d.x; })
+      .attr("y", function(d) { return d.y + ((d.children ? -z/4 : 0) * d.r); })
+      .attr("dy", "0.35em")
+      .attr("text-anchor", "middle")
+      .style("opacity", function(d) { return d.r > 20 ? 1 : 0; })
+      .text(function(d) { return (d.children ? d.name : ""); });
+
+
+/*
+var text = vis.selectAll('text')
+    .data(nodes)
+    .enter().append("svg:g")
+
+// A copy of the text with a thick white stroke for legibility.
+text.append("svg:text")
+    .attr("x", 8)
+    .attr("y", ".31em")
+    .attr("class", "shadow")
+    .text(function(d) { return d.name; });
+
+text.append("svg:text")
+    .attr("x", 8)
+    .attr("y", ".31em")
+    .text(function(d) { return d.name; });
+*/
+
+  d3.select(window).on("click", function() { zoom(root); });
+};
+
+function zoom(d, i) {
+  var k = r / d.r / 2 / 1.3;
+  x.domain([d.x - 1.3*d.r, d.x + 1.3*d.r]);
+  y.domain([d.y - 1.3*d.r, d.y + 1.3*d.r]);
+
+  var t = vis.transition()
+      .duration(d3.event.altKey ? 7500 : 3000);
+
+  t.selectAll("circle")
+      .attr("cx", function(d) { return x(d.x); })
+      .attr("cy", function(d) { return y(d.y); })
+      .attr("r", function(d) { return k * d.r; });
+
+  t.selectAll("image")
+      .attr('x', function(d) { return x(d.x - 0.9*d.r); })
+      .attr('y', function(d) { return y(d.y - 0.9*d.r); })
+      .attr('width', function(d) { return k * 1.8 * d.r; })
+      .attr('height', function(d) { return k * 1.8 * d.r; });
+
+  t.selectAll("text")
+      .attr("x", function(d) { return x(d.x); })
+      .attr("y", function(d) { return y(d.y + ((d.children ? -z/4 : 0) * d.r)); })
+      .style("opacity", function(d) { return k * d.r > 20 ? 1 : 0; });
+
+
+  node = d;
+  d3.event.stopPropagation();
+}
+
+    </script>
+
+
+<script type="text/javascript">
+    var or = function(value, alternate) {
+        if (value == undefined || value == null) {
+            return alternate;
+        } else {
+            return value;
+        }
+    }
+
+    var countryNameFromCountryCode = function(code) {
+        var d = {'ca': 'Canada',
+                 'us': 'United States',
+                 'pe': 'Peru',
+                 'ar': 'Argentina',
+                 'co': 'Colombia',
+                 'fr': 'France',
+                 'hu': 'Hungary',
+                 'nl': 'Netherlands',
+                 'tr': 'Turkey',
+                 'in': 'India',
+                 'il': 'Israel',
+                 'cn': 'China',
+                 'hk': 'Hong Kong',
+                 'za': 'South Africa',
+                 'ke': 'Kenya',
+                 'gh': 'Ghana',
+                 'sz': 'swaziland',
+                 'cz': 'Czech Republic',
+                 'ie': 'Ireland',
+                 'it': 'Italy',
+                 'sk': 'Slovakia',
+                 'ph': 'Philippines',
+                 'de': 'Germany',
+                 'jp': 'Japan',
+                 'fi': 'Finland',
+                 'no': 'Norway',
+                 'la': 'Laos',
+                 'sg': 'Singapore',
+                 'vn': 'Vietnam',
+                 'nm': 'Namibia',
+                 'oo': 'Other',
+                 'gb': 'United Kingdom'
+        }
+        return or(d.get(code), code);
+    }
+
+    /* string startswith, endswith  */
+    function AssertException(message) { this.message = message; }
+
+    AssertException.prototype.toString = function () {
+        return 'AssertException: ' + this.message;
+    }
+
+    function assert(exp, message) {
+        if (!exp) {
+            throw new AssertException(message);
+        }
+    }
+
+    if (typeof String.prototype.startsWith != 'function') {
+        String.prototype.startsWith = function (str){
+            return this.slice(0, str.length) == str;
+        };
+    }
+
+    if (typeof String.prototype.endsWith != 'function') {
+        String.prototype.endsWith = function (str){
+            return this.slice(-str.length) == str;
+        };
+    }
+
+    if (typeof String.prototype.trim != 'function') {
+        String.prototype.trim = function() {
+            return (this.replace(/^[\s\xA0]+/, "").replace(/[\s\xA0]+$/, ""));
+        }
+    }
+
+    if (typeof Object.prototype.get != 'function') {
+        Object.prototype.get = function(k1, k2, k3, k4, k5, k6, k7, k8) {
+            /* Accepts a dictionary, and key strings.
+                Returns the recursive dictionary keys as in Python.
+                    d.get('a', 'b', 'c') ~ d['a']['b']['c']
+            */
+            if (k1 == undefined) {
+                return null;
+            }
+            var output = this;
+            var k = [k1, k2, k3, k4, k5, k6, k7, k8];
+            for (i=0; i < k.length; i++) {
+                if (k[i] == undefined) {
+                    return output;
+                } else {
+                    if (k[i] in output) {
+                        output = output[k[i]];
+                    } else {
+                        return null;
+                    }
+                }
+            }
+            return output;
+        }
+    }
+    /* end extra prototype functions */
+
+    var removeAtFront = function(s, word) {
+        if (s.startsWith(word)) {
+            return s.slice(word.length + 1, s.length);
+        } else {
+            return s;
+        }
+    }
+
+    var removeAtEnd = function(s, word) {
+        if (s.endsWith(word)) {
+            return s.slice(0, s.length - word.length - 1);
+        } else {
+            return s;
+        }
+    }
+
+    var cleanupCityName = function(longCityName) {
+        /* Accepts long city name string.
+            Removes Greater and Area from the string, 
+                and extra after the comma.
+            Returns string.
+        */
+        if (longCityName == null) {
+            return '';
+        } else {
+            if (longCityName === 'Slovak Republic') {
+                return 'Slovakia';
+            }
+
+            var s = longCityName.trim().split(',')[0]
+            s = s.split('/')[0]
+            s = s.split('-')[0]
+
+            s = removeAtFront(s, 'Greater');
+            s = removeAtFront(s, 'District');
+
+            s = removeAtEnd(s, 'Area');
+            s = removeAtEnd(s, 'Metro');
+            s = removeAtEnd(s, 'Bay');
+            return s;
+        }
+    }
+
+    var addOneToHierarchy = function(element, hierarchy) {
+        assert('0' in element, 's');
+        assert('size' in element, 's');
+        assert('name' in element, 's');
+        var i = 0;
+        var d = hierarchy;
+        //alert(JSON.stringify(element));
+        //alert(JSON.stringify(hierarchy));
+        while(i in element) {
+            if (!('children' in d)) {
+                d.children = [];
+            }
+
+            var category = element[i];
+
+            var subchild = null;
+            for(var j = 0; j < d.children.length; j++) {
+                if (category == d.children[j].name) {
+                    subchild = d.children[j];
+                }
+            }
+            if (subchild == null) {
+                subchild = {'name': category};
+                d.children.push(subchild)
+            }
+
+            d = subchild
+            i += 1;
+        }
+
+        if (!('children' in d)) {
+            d.children = [];
+        }
+        d.children.push({'name': element.name, 
+                         'size': element.size,
+                         'url': element.url,
+                         'photoUrl': element.photoUrl
+        });
+    }
+
+    var addToHierarchy = function(flatHierarchy, total) {
+        var h = total;
+        if (total == undefined) {
+            var network = '';
+            h = {'name': network, 'children': []};
+        }
+        for(var i = 0; i < flatHierarchy.length; i++) {
+            if (flatHierarchy[i] != null) {
+                addOneToHierarchy(flatHierarchy[i], h);
+            }
+        }
+        return h;
+    }
+
+    var newlogin = function(d) {
+        var fields = ['formattedName', 'firstName', 'lastName', 'headline', 'positions', 'location', 'industry', 'numConnections', 'summary', 'pictureUrl', 'siteStandardProfileRequest', 'relatedProfileViews', 'threePastPositions', 'threeCurrentPositions', 'specialties', 'currentShare', 'educations'];
+
+        /*
+        IN.API.Connections("me")
+            .fields(fields)
+            .result(
+        */
+        d3.json('network.json',
+                function(result) { 
+                var values = result.values;
+                //alert(values.length);
+                var flatHierarchy = jQuery.map(values, function(v) {
+                    var country = countryNameFromCountryCode(v.get('location', 'country', 'code'));
+                    var city = cleanupCityName(v.get('location', 'name'));
+                    var name = v.formattedName; // v.lastName; //
+                    var size = 1 + or(v.get('numConnections'), 0);
+                    var url = v.get('siteStandardProfileRequest','url');
+                    var photoUrl = v.pictureUrl;
+
+                    var sandbox = {'Trevor Owens': true,
+                                   'Bjoern Lasse Herrmann': true,
+                                   'Bel Pesce': true,
+                                   'William McQuillan': true,
+                                   'Rand Hindi': true,
+                                   'Leon Chen': true,
+                                   'Alvin Tse': true,
+                                   'Mihai Mafteianu': true,
+                                   'Isabel Pesce Mattos': true,
+                                   'Bryan Baum': true};
+
+                    if (name == null) {
+                        return null;
+                    } else if (v.formattedName in sandbox || v.firstName == 'Leon') {
+                        return {'0': 'Sandbox',
+                                'name': name,
+                                'size': 10000,
+                                'url': url,
+                                'photoUrl': photoUrl
+                        };
+                    } else if (country === city) {
+                        return {'0': country,
+                                'name': name,
+                                'size': size,
+                                'url': url,
+                                'photoUrl': photoUrl
+                        };
+                    } else {
+                        return {'0': country,
+                                '1': city,
+                                'name': name,
+                                'size': size,
+                                'url': url,
+                                'photoUrl': photoUrl
+                        };
+                    }
+                });
+
+                var hierarchy = addToHierarchy(flatHierarchy);
+                var t = JSON.stringify(hierarchy);
+                //console.log(t);
+
+                showData(hierarchy);
+                //$("#connections").html(t);
+                //$("#connections").html(JSON.stringify(result));
+        });
+
+        /*
+        IN.API.Profile("me")
+            .fields(fields)
+            .result(function(result) { 
+                alert(JSON.stringify(result));
+                $("#connections").html(JSON.stringify(result));
+        });
+        */
+    };
+</script>
+<div id="connections"></div>
+  </body>
+</html>
+
